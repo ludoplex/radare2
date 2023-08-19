@@ -9,7 +9,7 @@ try:
 	sdb_exe = sys.argv[1]
 	_input = sys.argv[2]
 	_output = sys.argv[3]
-	_tmpfile = _input + ".tmp"
+	_tmpfile = f"{_input}.tmp"
 	with open(_input) as lines:
 		res = ""
 		for line in lines:
@@ -22,15 +22,15 @@ try:
 				res += line
 			else:
 				vv = kv[1].split(",")
-				res += vv[0] + "." + vv[1] + "=" + kv[0] + "\n"
+				res += f"{vv[0]}.{vv[1]}={kv[0]}" + "\n"
 				# Can't just append the original line, because
 				# r_syscall_item_new_from_string splits it by commas
 				# and wants at least 3 items in the result, whereas
 				# original lines, at least in some archs, have only
 				# two items. For compatibitity with gen.sh, always
 				# have at least 4 items.
-				vv.extend([ '' for i in range(4 - len(vv)) ])
-				res += kv[0] + "=" + ",".join(vv) + "\n"
+				vv.extend(['' for _ in range(4 - len(vv))])
+				res += f"{kv[0]}=" + ",".join(vv) + "\n"
 		with open(_tmpfile, "w") as file:
 			file.write(res)
 	subprocess.call([sdb_exe, _output, "==", _tmpfile])

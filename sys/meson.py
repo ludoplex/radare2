@@ -73,13 +73,13 @@ def meson(command, rootdir=None, builddir=None, prefix=None, backend=None,
     if builddir:
         cmd.append(builddir)
     if prefix:
-        cmd.append('--prefix={}'.format(prefix))
+        cmd.append(f'--prefix={prefix}')
     if backend:
-        cmd.append('--backend={}'.format(backend))
+        cmd.append(f'--backend={backend}')
     if release:
         cmd.append('--buildtype=release')
     if shared != None:
-        cmd.append('--default-library={}'.format('shared' if shared else 'static'))
+        cmd.append(f"--default-library={'shared' if shared else 'static'}")
     if options:
         cmd.extend(options)
 
@@ -142,14 +142,14 @@ def xp_compat(builddir):
     log.info('Running XP compat script')
 
     with open(os.path.join(builddir, 'REGEN.vcxproj'), 'r') as f:
-        version = re.search('<PlatformToolset>(.*)</PlatformToolset>', f.read()).group(1)
+        version = re.search('<PlatformToolset>(.*)</PlatformToolset>', f.read())[1]
 
     if version.endswith('_xp'):
         log.info('Skipping %s', builddir)
         return
 
     log.debug('Translating from %s to %s_xp', version, version)
-    newversion = version+'_xp'
+    newversion = f'{version}_xp'
 
     for f in glob.iglob(os.path.join(builddir, '**', '*.vcxproj'), recursive=True):
         with open(f, 'r') as proj:
@@ -163,7 +163,7 @@ def build(args):
     """ Build radare2 """
     log.info('Building radare2')
     r2_builddir = os.path.join(ROOT, args.dir)
-    options = ['-D%s' % x for x in args.options]
+    options = [f'-D{x}' for x in args.options]
     if args.webui:
         options.append('-Duse_webui=true')
     if args.local:
@@ -188,7 +188,7 @@ def build(args):
 
 def install(args):
     """ Install radare2 """
-    meson('install', options=['-C', '{}'.format(args.dir), '--no-rebuild'])
+    meson('install', options=['-C', f'{args.dir}', '--no-rebuild'])
 
 def main():
     # Create logger and get applications paths
@@ -243,23 +243,23 @@ def main():
             sys.exit(1)
         sanitizers = args.sanitize
         if args.fuzz and 'fuzzer' not in sanitizers:
-            sanitizers = "fuzzer," + sanitizers
+            sanitizers = f"fuzzer,{sanitizers}"
         cflags = os.environ.get('CFLAGS')
         if not cflags:
             cflags = ''
-        os.environ['CFLAGS'] = cflags + ' -fsanitize=' + sanitizers
+        os.environ['CFLAGS'] = f'{cflags} -fsanitize={sanitizers}'
         if os.uname().sysname != 'Darwin':
-          ldflags = os.environ.get('LDFLAGS')
-          if not ldflags:
-              ldflags = ''
-          os.environ['LDFLAGS'] = ldflags + ' -fsanitize=' + sanitizers 
+            ldflags = os.environ.get('LDFLAGS')
+            if not ldflags:
+                ldflags = ''
+            os.environ['LDFLAGS'] = f'{ldflags} -fsanitize={sanitizers}' 
 
     # Check arguments
     if args.pull:
         # Attempt to update from an existing remote
         upstream_remote = subprocess.check_output(["git", "remote", "-v"]).decode()
         try:
-            remote = re.search(r'(.*?)\t.*radareorg/radare2 \(fetch\)', upstream_remote).group(1)
+            remote = re.search(r'(.*?)\t.*radareorg/radare2 \(fetch\)', upstream_remote)[1]
         except AttributeError: # If search misses, None.group() throws this
             remote = 'https://github.com/radareorg/radare2'
         os.system(f'git pull {remote} master')
@@ -291,18 +291,16 @@ def main():
 
     PATH_FMT.update(R2_PATH)
 
-    sudo = 'sudo '
-    if args.nosudo:
-        sudo = ''
+    sudo = '' if args.nosudo else 'sudo '
     # Build it!
     log.debug('Arguments: %s', args)
     build(args)
     if args.uninstall:
-        os.system(sudo + 'make uninstall PWD="$PWD/build" BTOP="$PWD/build/binr"')
+        os.system(f'{sudo}make uninstall PWD="$PWD/build" BTOP="$PWD/build/binr"')
     if args.install:
         install(args)
     if args.symstall:
-        os.system(sudo + 'make symstall PWD="$PWD/build" BTOP="$PWD/build/binr"')
+        os.system(f'{sudo}make symstall PWD="$PWD/build" BTOP="$PWD/build/binr"')
 
 if __name__ == '__main__':
     main()

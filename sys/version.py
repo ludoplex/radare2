@@ -2,13 +2,14 @@
 
 """ Portable python script to read version from configure.acr """
 
+
 import sys
 
 full_version = False
 no_newline = False
 
 for arg in sys.argv[1:]:
-    if arg == '-h' or arg == '--help':
+    if arg in ['-h', '--help']:
         print('Only flag accepted here is --full-version')
         sys.exit(0)
     elif arg == '-n':
@@ -16,7 +17,7 @@ for arg in sys.argv[1:]:
     elif arg == '--full-version':
         full_version = True
     else:
-        print('Option %s not supported' % (arg,))
+        print(f'Option {arg} not supported')
         sys.exit(1)
 import os
 r2root=os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
