@@ -82,23 +82,23 @@ def main():
   for lineidx, line in enumerate(input):
     match = re.search('^\+\+\+\ (.*?/){%s}(\S*)' % args.p, line)
     if match:
-      filename = match.group(2)
+      filename = match[2]
     if filename is None:
       continue
 
     if args.regex is not None:
-      if not re.match('^%s$' % args.regex, filename):
+      if not re.match(f'^{args.regex}$', filename):
         continue
     else:
-      if not re.match('^%s$' % args.iregex, filename, re.IGNORECASE):
+      if not re.match(f'^{args.iregex}$', filename, re.IGNORECASE):
         continue
 
     match = re.search('^@@.*\+(\d+)(,(\d+))?', line)
     if match:
-      start_line = int(match.group(1))
+      start_line = int(match[1])
       line_count = 1
-      if match.group(3):
-        line_count = int(match.group(3))
+      if match[3]:
+        line_count = int(match[3])
       if line_count == 0:
         continue
       range_start, range_end = None, None
@@ -117,14 +117,14 @@ def main():
         if input[lineidx + i].startswith('+'):
           if range_start is None:
             range_start = start_line + range_line - 1
-            debug('set range_start: ' + str(start_line + range_line))
+            debug(f'set range_start: {str(start_line + range_line)}')
         elif range_start is not None and range_end is None:
-            range_end = start_line + range_line - 1
-            debug('set range_end: ' + str(start_line + range_line))
-            lines_by_file.setdefault(filename, []).append([range_start, range_end - 1])
-            range_start, range_end = None, None
+          range_end = start_line + range_line - 1
+          debug(f'set range_end: {str(start_line + range_line)}')
+          lines_by_file.setdefault(filename, []).append([range_start, range_end - 1])
+          range_start, range_end = None, None
 
-        debug('lineidx : ' + input[lineidx + i])
+        debug(f'lineidx : {input[lineidx + i]}')
 
         if input[lineidx + i].startswith('diff') or (i != 0 and input[lineidx + i].startswith('@@')):
             break
@@ -132,14 +132,14 @@ def main():
 
   # Reformat files containing changes in place.
   for filename, lines in lines_by_file.items():
-    debug('%s: %s' % (filename,lines))
+    debug(f'{filename}: {lines}')
     command = [args.binary, filename]
     if args.sort_includes:
       command.append('-sort-includes')
     if lines:
-        s = [('-lines', str(x[0]) + ':' + str(x[1])) for x in lines]
-        s = reduce(lambda x, y: x + y, s)
-        command.extend(s)
+      s = [('-lines', f'{str(x[0])}:{str(x[1])}') for x in lines]
+      s = reduce(lambda x, y: x + y, s)
+      command.extend(s)
     if args.style:
       command.extend(['-style', args.style])
     p = subprocess.Popen(command,
@@ -154,7 +154,7 @@ def main():
     with open(filename) as f:
       code = f.readlines()
     formatted_code = StringIO(stdout).readlines()
-    modified_lines = dict()
+    modified_lines = {}
     if lines:
         for x in lines:
             for i in range(x[0], x[1] + 1):
@@ -163,33 +163,33 @@ def main():
     delta = 10
     # handle functions definitions/declarations: do not use space before (
     for i, l in enumerate(formatted_code):
-        if modified_lines and not any(map(lambda x: x in modified_lines, range(i + 1 - delta, i + 1 + delta))):
-            continue
+      if modified_lines and not any(map(lambda x: x in modified_lines, range(i + 1 - delta, i + 1 + delta))):
+          continue
 
-        debug('formatted_code: ' + formatted_code[i])
-        if formatted_code[i].startswith('R_API ') or formatted_code[i].startswith('static ') or formatted_code[i].startswith('R_IPI '):
-            formatted_code[i] = formatted_code[i].replace(' (', '(')
+      debug(f'formatted_code: {formatted_code[i]}')
+      if formatted_code[i].startswith('R_API ') or formatted_code[i].startswith('static ') or formatted_code[i].startswith('R_IPI '):
+          formatted_code[i] = formatted_code[i].replace(' (', '(')
 
-        formatted_code[i] = formatted_code[i].replace('Elf_ (', 'Elf_(')
+      formatted_code[i] = formatted_code[i].replace('Elf_ (', 'Elf_(')
 
-        while ' ? ' in formatted_code[i] and ' : ' in formatted_code[i]:
-            pos_q = formatted_code[i].index(' ? ')
-            pos_c = formatted_code[i].index(' : ')
-            if pos_q >= pos_c:
-                break
-            formatted_code[i] = formatted_code[i].replace(' ? ', '? ', 1)
-            formatted_code[i] = formatted_code[i].replace(' : ', ': ', 1)
+      while ' ? ' in formatted_code[i] and ' : ' in formatted_code[i]:
+          pos_q = formatted_code[i].index(' ? ')
+          pos_c = formatted_code[i].index(' : ')
+          if pos_q >= pos_c:
+              break
+          formatted_code[i] = formatted_code[i].replace(' ? ', '? ', 1)
+          formatted_code[i] = formatted_code[i].replace(' : ', ': ', 1)
 
     diff = difflib.unified_diff(code, formatted_code,
                                 filename, filename,
                                 '(before formatting)', '(after formatting)')
     diff_string = ''.join(diff)
-    if len(diff_string) > 0:
+    if diff_string != "":
       if args.i:
         f = tempfile.NamedTemporaryFile(delete=False)
         f.write(diff_string.encode())
         f.close()
-        os.system('git apply -p0 < "%s"' % (f.name))
+        os.system(f'git apply -p0 < "{f.name}"')
         os.unlink(f.name)
       else:
         sys.stdout.write(diff_string)

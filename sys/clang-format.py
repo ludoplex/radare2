@@ -37,10 +37,7 @@ pattern = ["*.c", "*.cpp", "*.h", "*.hpp", "*.inc"]
 
 
 def skip(filename):
-    for s in skiplist:
-        if s in filename:
-            return True
-    return False
+    return any(s in filename for s in skiplist)
 
 
 try:
@@ -48,7 +45,7 @@ try:
         print("Processing directory: {0}".format(d))
         for pat in pattern:
             print("Processing pattern: {0}".format(pat))
-            for filename in glob.iglob(d + "/**/" + pat, recursive=True):
+            for filename in glob.iglob(f"{d}/**/{pat}", recursive=True):
                 if not skip(filename):
                     CMD = "clang-format -style=file -i {0}".format(filename)
                     print(CMD)
